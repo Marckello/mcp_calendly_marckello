@@ -1,5 +1,7 @@
 # ===== MCP Calendly Streaming Server Dockerfile =====
 # Optimized for EasyPanel deployment with robust dependency installation
+# Version: 1.1.1 - Docker Build Fix
+# Build timestamp: 2025-08-30
 
 # Use official Node.js runtime as base image
 FROM node:18-alpine
@@ -16,7 +18,9 @@ COPY package*.json ./
 
 # Install dependencies with fallback strategy
 # Try npm ci first (faster, more reliable), fallback to npm install if no lock file
-RUN if [ -f package-lock.json ]; then \
+# Version: 1.1.1 - Enhanced Docker Build
+RUN echo "Building MCP Calendly v1.1.1 with Docker fix" && \
+    if [ -f package-lock.json ]; then \
         echo "Using npm ci with package-lock.json" && \
         npm ci --omit=dev; \
     else \

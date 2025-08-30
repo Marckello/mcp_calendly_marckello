@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.0.0-blue)](https://spec.modelcontextprotocol.io/)
-[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/Marckello/mcp_calendly_marckello/releases)
+[![Version](https://img.shields.io/badge/version-1.1.1-green.svg)](https://github.com/Marckello/mcp_calendly_marckello/releases)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/)
 
 ## 🎯 Features
