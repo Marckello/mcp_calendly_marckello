@@ -45,9 +45,9 @@ class CalendlyMCPStdioServer {
 
     // Initialize Calendly service
     this.calendlyService = new CalendlyEnterpriseService({
-      accessToken: process.env.CALENDLY_ACCESS_TOKEN,
+      accessToken: process.env.CALENDLY_ACCESS_TOKEN!,
       baseUrl: process.env.CALENDLY_API_BASE_URL || 'https://api.calendly.com',
-      organizationUri: process.env.CALENDLY_ORGANIZATION_URI,
+      organizationUri: process.env.CALENDLY_ORGANIZATION_URI || '',
       timeout: 30000
     }, logger)
 

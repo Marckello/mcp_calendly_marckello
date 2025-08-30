@@ -272,11 +272,11 @@ export class SecurityService {
       const key = useSecondaryKey ? this.encryptionKeys.secondary : this.encryptionKeys.primary
       const iv = crypto.randomBytes(16)
       
-      const cipher = crypto.createCipher(this.config.encryption.algorithm, key)
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
       let encrypted = cipher.update(data, 'utf8', 'hex')
       encrypted += cipher.final('hex')
 
-      const authTag = cipher.getAuthTag ? cipher.getAuthTag().toString('hex') : ''
+      const authTag = cipher.getAuthTag().toString('hex')
       
       return `${iv.toString('hex')}:${encrypted}:${authTag}`
 
@@ -299,9 +299,9 @@ export class SecurityService {
       const key = useSecondaryKey ? this.encryptionKeys.secondary : this.encryptionKeys.primary
       const iv = Buffer.from(ivHex, 'hex')
       
-      const decipher = crypto.createDecipher(this.config.encryption.algorithm, key)
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
       
-      if (authTagHex && decipher.setAuthTag) {
+      if (authTagHex) {
         decipher.setAuthTag(Buffer.from(authTagHex, 'hex'))
       }
 

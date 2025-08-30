@@ -2,6 +2,7 @@
 
 import express from 'express'
 import { createServer } from 'http'
+import * as http from 'http'
 import helmet from 'helmet'
 import cors from 'cors'
 import morgan from 'morgan'
@@ -20,7 +21,7 @@ import { SecurityService } from './services/security-service.js'
 import { AuditService } from './services/audit-service.js'
 import { CalendlyEnterpriseService } from './services/calendly-enterprise-service.js'
 import { MCPToolRegistry } from './mcp/tool-registry.js'
-import { setupMiddleware } from './middleware/security-middleware.js'
+
 import {
   SecurityConfigJoiSchema,
   CalendlyApiParamsJoiSchema,
@@ -125,6 +126,38 @@ export class CalendlyMCPStreamingServer {
   constructor() {
     this.app = express()
     this.httpServer = createServer(this.app)
+    
+    // Initialize services with simplified configurations
+    this.securityService = new SecurityService(
+      logger, 
+      {
+        rate_limiting: { requests_per_minute: 100, burst_limit: 20, window_ms: 60000 },
+        cors: { origins: ['http://localhost:3000'], methods: ['GET', 'POST'], credentials: false },
+        encryption: { algorithm: 'aes-256-gcm' as const, key_rotation_days: 90, token_expiry_hours: 24 },
+        audit: { log_all_requests: true, log_sensitive_data: false, retention_days: 30 }
+      },
+      process.env.JWT_SECRET || 'default-secret'
+    )
+    
+    this.auditService = new AuditService(logger, {
+      retentionDays: 30,
+      logSensitiveData: false,
+      batchSize: 100,
+      flushIntervalMs: 30000,
+      alertThresholds: { errorRate: 10, suspiciousActivity: 5 }
+    })
+    
+    this.calendlyService = new CalendlyEnterpriseService({
+      accessToken: process.env.CALENDLY_ACCESS_TOKEN!,
+      baseUrl: process.env.CALENDLY_BASE_URL || 'https://api.calendly.com',
+      organizationUri: process.env.CALENDLY_ORGANIZATION_URI || '',
+      timeout: 30000
+    }, logger)
+    
+    this.toolRegistry = new MCPToolRegistry(this.calendlyService, logger)
+    this.wsServer = new WebSocketStreamingServer(this.httpServer, this.securityService, this.auditService, this.toolRegistry)
+    this.sseServer = new SSEStreamingServer(this.securityService, this.auditService, this.toolRegistry)
+    
     this.initializeServices()
     this.setupMiddleware()
     this.setupRoutes()
@@ -133,55 +166,7 @@ export class CalendlyMCPStreamingServer {
   }
 
   private initializeServices(): void {
-    logger.info('Initializing enterprise services...')
-
-    // Security configuration
-    const securityConfig = {
-      rate_limiting: {
-        requests_per_minute: validatedConfig.RATE_LIMIT_REQUESTS_PER_MINUTE,
-        burst_limit: validatedConfig.RATE_LIMIT_BURST,
-        window_ms: 60000
-      },
-      cors: {
-        origins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        credentials: false
-      },
-      encryption: {
-        algorithm: 'aes-256-gcm' as const,
-        key_rotation_days: 90,
-        token_expiry_hours: 24
-      },
-      audit: {
-        log_all_requests: true,
-        log_sensitive_data: validatedConfig.NODE_ENV === 'development',
-        retention_days: validatedConfig.LOG_RETENTION_DAYS
-      }
-    }
-
-    // Initialize services
-    this.securityService = new SecurityService(logger, securityConfig, validatedConfig.JWT_SECRET)
-    this.auditService = new AuditService(logger, {
-      retentionDays: validatedConfig.LOG_RETENTION_DAYS,
-      logSensitiveData: validatedConfig.NODE_ENV === 'development',
-      batchSize: 100,
-      flushIntervalMs: 30000,
-      alertThresholds: {
-        errorRate: 10,
-        suspiciousActivity: 5
-      }
-    })
-
-    this.calendlyService = new CalendlyEnterpriseService({
-      accessToken: validatedConfig.CALENDLY_ACCESS_TOKEN,
-      baseUrl: validatedConfig.CALENDLY_API_BASE_URL,
-      organizationUri: validatedConfig.CALENDLY_ORGANIZATION_URI,
-      timeout: 30000
-    }, logger)
-
-    this.toolRegistry = new MCPToolRegistry(this.calendlyService, logger)
-
-    logger.info('Enterprise services initialized successfully')
+    logger.info('✅ Enterprise services initialized successfully')
   }
 
   private setupMiddleware(): void {
@@ -198,15 +183,15 @@ export class CalendlyMCPStreamingServer {
     this.app.use(helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: [\"'self'\"],
-          scriptSrc: [\"'self'\", \"'unsafe-inline'\"],
-          styleSrc: [\"'self'\", \"'unsafe-inline'\"],
-          imgSrc: [\"'self'\", 'data:', 'https:'],
-          connectSrc: [\"'self'\", 'wss:', 'ws:'],
-          fontSrc: [\"'self'\"],
-          objectSrc: [\"'none'\"],
-          mediaSrc: [\"'self'\"],
-          frameSrc: [\"'none'\"]
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'wss:', 'ws:'],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"]
         }
       },
       crossOriginEmbedderPolicy: false

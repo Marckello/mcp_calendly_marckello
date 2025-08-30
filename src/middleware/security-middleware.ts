@@ -117,15 +117,16 @@ export function setupMiddleware(
 }
 
 export function requirePermission(permission: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const securityContext = (req as any).securityContext
 
     if (!securityContext || !securityContext.permissions.includes(permission)) {
-      return res.status(403).json({
+      res.status(403).json({
         error: 'Forbidden',
         message: `Permission required: ${permission}`,
         request_id: (req as any).requestId
       })
+      return
     }
 
     next()
