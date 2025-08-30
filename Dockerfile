@@ -1,5 +1,5 @@
 # ===== MCP Calendly Streaming Server Dockerfile =====
-# Optimized for EasyPanel deployment
+# Optimized for EasyPanel deployment with robust dependency installation
 
 # Use official Node.js runtime as base image
 FROM node:18-alpine
@@ -8,14 +8,22 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
 # Copy package files first (for better Docker layer caching)
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+# Install dependencies with fallback strategy
+# Try npm ci first (faster, more reliable), fallback to npm install if no lock file
+RUN if [ -f package-lock.json ]; then \
+        echo "Using npm ci with package-lock.json" && \
+        npm ci --omit=dev; \
+    else \
+        echo "No package-lock.json found, using npm install" && \
+        npm install --omit=dev; \
+    fi && \
+    npm cache clean --force
 
 # Copy application code
 COPY . .
