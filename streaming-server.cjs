@@ -459,7 +459,7 @@ io.on('connection', (socket) => {
     protocol_version: '1.1.0',
     server_info: {
       name: 'MCP Calendly Streaming Server',
-      version: '1.1.0',
+      version: '1.1.1',
       total_tools: Object.keys(MCP_TOOLS).length
     },
     capabilities: {
@@ -648,7 +648,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'MCP Calendly Streaming Server',
-    version: '1.1.0',
+    version: '1.1.1',
     features: ['websocket', 'sse', 'mcp_protocol'],
     active_connections: connections.size,
     total_tools: Object.keys(MCP_TOOLS).length

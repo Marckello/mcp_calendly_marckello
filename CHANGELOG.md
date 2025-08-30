@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-08-30
+
+### 🐛 Fixed
+- **Docker Build Enhancement**: Improved Dockerfile robustness with npm install fallback
+- **Branch Issue**: Fixed deployment branch mismatch (master vs main)
+- **Build Reliability**: Added conditional logic to handle missing package-lock.json scenarios
+- **EasyPanel Compatibility**: Enhanced Docker build process for cloud deployment platforms
+
+### 🔧 Technical
+- Docker now tries `npm ci` first, falls back to `npm install` if no lockfile
+- Better logging for dependency installation process
+- Robust error handling for different npm scenarios
+
 ## [1.1.0] - 2025-08-30
 
 ### ✨ Added
