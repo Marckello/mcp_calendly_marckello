@@ -1,0 +1,105 @@
+{
+  "name": "mcp-calendly-streaming",
+  "version": "1.0.0",
+  "description": "Enterprise-grade MCP (Model Context Protocol) streaming server for Calendly API integration with bidirectional WebSocket/SSE communication",
+  "main": "dist/server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "tsx --watch src/server.ts",
+    "build": "tsc && npm run copy-assets",
+    "copy-assets": "cp -r src/static dist/ 2>/dev/null || true",
+    "start": "node dist/server.js",
+    "start:mcp": "node dist/mcp-stdio.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build",
+    "docker:build": "docker build -t mcp-calendly-streaming .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env mcp-calendly-streaming",
+    "health": "curl -f http://localhost:3000/health || exit 1",
+    "logs": "tail -f logs/combined.log 2>/dev/null || echo 'No logs yet'",
+    "validate:env": "node -e \"console.log('Environment validation:', process.env.CALENDLY_ACCESS_TOKEN ? '✅ Valid' : '❌ Missing CALENDLY_ACCESS_TOKEN')\""
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "calendly",
+    "streaming",
+    "websocket",
+    "sse",
+    "json-rpc",
+    "oauth",
+    "enterprise"
+  ],
+  "author": "Marckello",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0",
+    "ws": "^8.18.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "joi": "^17.13.0",
+    "axios": "^1.7.0",
+    "crypto-js": "^4.2.0",
+    "express-rate-limit": "^7.4.0",
+    "express-slow-down": "^2.0.3",
+    "compression": "^1.7.4",
+    "dotenv": "^16.4.0",
+    "zod": "^3.23.0",
+    "jsonwebtoken": "^9.0.2",
+    "express-validator": "^7.2.0",
+    "uuid": "^10.0.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "@types/express": "^4.17.0",
+    "@types/cors": "^2.8.0", 
+    "@types/morgan": "^1.9.0",
+    "@types/compression": "^1.7.0",
+    "@types/crypto-js": "^4.2.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/uuid": "^10.0.0",
+    "@types/lodash": "^4.17.0",
+    "@types/ws": "^8.5.0",
+    "@types/jest": "^29.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.9.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "nodemon": "^3.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Marckello/mcp_calendly_marckello.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Marckello/mcp_calendly_marckello/issues"
+  },
+  "homepage": "https://github.com/Marckello/mcp_calendly_marckello#readme",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.{ts,js}",
+      "!src/**/*.d.ts",
+      "!src/types/**/*"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"]
+  }
+}
