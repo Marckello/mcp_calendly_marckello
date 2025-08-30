@@ -456,10 +456,10 @@ io.on('connection', (socket) => {
   // Send MCP initialization
   socket.emit('mcp_initialize', {
     type: MCPMessageType.RESPONSE,
-    protocol_version: '1.0.0',
+    protocol_version: '1.1.0',
     server_info: {
       name: 'MCP Calendly Streaming Server',
-      version: '1.0.0',
+      version: '1.1.0',
       total_tools: Object.keys(MCP_TOOLS).length
     },
     capabilities: {
@@ -596,7 +596,7 @@ app.get('/events', (req, res) => {
     client_id: clientId,
     server_info: {
       name: 'MCP Calendly Streaming Server',
-      version: '1.0.0'
+      version: '1.1.0'
     },
     timestamp: new Date().toISOString()
   })}\\n\\n`)
@@ -648,7 +648,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'MCP Calendly Streaming Server',
-    version: '1.0.0',
+    version: '1.1.0',
     features: ['websocket', 'sse', 'mcp_protocol'],
     active_connections: connections.size,
     total_tools: Object.keys(MCP_TOOLS).length

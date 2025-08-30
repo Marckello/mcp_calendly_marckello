@@ -248,7 +248,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'MCP Calendly Enhanced Server',
-    version: '2.0.0',
+    version: '1.1.0',
     total_mcp_tools: 14
   })
 })
@@ -364,7 +364,7 @@ app.get('/api/test/all-tools', async (req, res) => {
   
   const results = {
     timestamp: new Date().toISOString(),
-    version: '2.0.0',
+    version: '1.1.0',
     tests_completed: 0,
     tests_total: 14,
     categories: {

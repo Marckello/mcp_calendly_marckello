@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.0.0-blue)](https://spec.modelcontextprotocol.io/)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/Marckello/mcp_calendly_marckello/releases)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/)
 
 ## 🎯 Features
 
@@ -220,11 +222,22 @@ mcp_calendly_marckello/
 ```
 
 ### Available Scripts
+
+#### 🚀 **Development & Production**
 - `npm run dev` - Development mode with hot reload
 - `npm run start` - Production mode
 - `npm run pm2:start` - Start with PM2 process manager
 - `npm run pm2:stop` - Stop PM2 processes
 - `npm run pm2:restart` - Restart PM2 processes
+
+#### 🔢 **Version Management**
+- `npm run version:patch` - Increment patch version (1.1.0 → 1.1.1)
+- `npm run version:minor` - Increment minor version (1.1.0 → 1.2.0)
+- `npm run version:major` - Increment major version (1.1.0 → 2.0.0)
+- `npm run version:check` - Check current version
+- `npm run release` - Quick minor version release
+
+#### 🧪 **Testing & Quality**
 - `npm run test` - Run test suite
 - `npm run lint` - Code linting
 
