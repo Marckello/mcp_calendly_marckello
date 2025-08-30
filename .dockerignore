@@ -1,0 +1,69 @@
+# Development files
+.env
+.env.*
+*.env
+
+# Version control
+.git
+.gitignore
+
+# Dependencies (will be installed in container)
+node_modules
+npm-debug.log*
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# PM2
+.pm2
+
+# Build outputs
+dist
+build
+.build
+
+# Logs
+logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Temporary files
+.tmp
+.temp
+tmp
+temp
+
+# Test files
+test
+tests
+*.test.js
+
+# Documentation (not needed in runtime)
+README.md
+CHANGELOG.md
+docs/
+
+# Backup files
+*.backup
+*.bak
+*.tar.gz
