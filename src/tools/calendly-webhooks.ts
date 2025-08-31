@@ -14,18 +14,32 @@ export class CalendlyWebhookTools {
   // TOOL: List Webhooks
   async listWebhooks(params: {
     organization_uri?: string;
+    organization?: string; // Support both parameter names
     scope?: 'user' | 'organization';
   } = {}): Promise<any> {
     try {
       this.logger.info('Fetching webhooks', { params });
       
+      // Support both parameter names for organization
+      let organizationUri = params.organization_uri || params.organization;
+      
       // If no organization URI provided, get current user's organization
-      let organizationUri = params.organization_uri;
       if (!organizationUri) {
-        const user = await this.calendly.getCurrentUser();
-        organizationUri = user.current_organization;
+        try {
+          const user = await this.calendly.getCurrentUser();
+          organizationUri = user.current_organization;
+          this.logger.info('Auto-detected organization from current user', { organizationUri });
+        } catch (userError) {
+          this.logger.error('Failed to get current user for organization detection:', userError);
+          throw new Error('organization_uri parameter is required when user detection fails');
+        }
       }
 
+      if (!organizationUri) {
+        throw new Error('organization_uri parameter is required');
+      }
+
+      this.logger.info('Fetching webhooks from Calendly API', { organizationUri, scope: params.scope });
       const webhooks = await this.calendly.getWebhooks(organizationUri, params.scope);
       
       const activeWebhooks = webhooks.filter(w => w.state === 'active');
@@ -46,7 +60,16 @@ export class CalendlyWebhookTools {
       };
     } catch (error) {
       this.logger.error('Error fetching webhooks:', error);
-      throw error;
+      
+      // Return a more detailed error response
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          code: 'WEBHOOK_LIST_ERROR',
+          details: error
+        }
+      };
     }
   }
 

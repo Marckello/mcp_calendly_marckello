@@ -68,14 +68,17 @@ export class CalendlyCoreTools {
   // TOOL: List Event Types
   async listEventTypes(params: {
     user_uri?: string;
+    user?: string; // Support both parameter names
     organization_uri?: string;
     active_only?: boolean;
   } = {}): Promise<any> {
     try {
       this.logger.info('Fetching event types', { params });
       
+      // Support both parameter names
+      let userUri = params.user_uri || params.user;
+      
       // If no user URI provided, get current user
-      let userUri = params.user_uri;
       if (!userUri) {
         const user = await this.calendly.getCurrentUser();
         userUri = user.uri;
@@ -105,15 +108,19 @@ export class CalendlyCoreTools {
   }
 
   // TOOL: Get Event Type Details
-  async getEventType(params: { event_type_uri?: string }): Promise<any> {
+  async getEventType(params: { 
+    event_type_uri?: string;
+    uri?: string; // Support both parameter names
+  }): Promise<any> {
     try {
-      if (!params.event_type_uri) {
+      const eventTypeUri = params.event_type_uri || params.uri;
+      if (!eventTypeUri) {
         throw new Error('event_type_uri parameter is required');
       }
       
-      this.logger.info('Fetching event type details', { event_type_uri: params.event_type_uri });
+      this.logger.info('Fetching event type details', { event_type_uri: eventTypeUri });
       
-      const eventType = await this.calendly.getEventType(params.event_type_uri);
+      const eventType = await this.calendly.getEventType(eventTypeUri);
       
       return {
         success: true,
@@ -139,6 +146,7 @@ export class CalendlyCoreTools {
   // TOOL: List Scheduled Events
   async listScheduledEvents(params: {
     user_uri?: string;
+    user?: string; // Support both parameter names
     organization_uri?: string;
     min_start_time?: string;
     max_start_time?: string;
@@ -148,8 +156,10 @@ export class CalendlyCoreTools {
     try {
       this.logger.info('Fetching scheduled events', { params });
       
+      // Support both parameter names
+      let userUri = params.user_uri || params.user;
+      
       // If no user URI provided, get current user
-      let userUri = params.user_uri;
       if (!userUri) {
         const user = await this.calendly.getCurrentUser();
         userUri = user.uri;
@@ -259,17 +269,29 @@ export class CalendlyCoreTools {
   }
 
   // TOOL: Get User Availability
-  async getUserAvailability(params: { user_uri?: string } = {}): Promise<any> {
+  async getUserAvailability(params: { 
+    user_uri?: string;
+    user?: string; // Support both parameter names
+  } = {}): Promise<any> {
     try {
       this.logger.info('Fetching user availability', { params });
       
+      // Support both parameter names
+      let userUri = params.user_uri || params.user;
+      
       // If no user URI provided, get current user
-      let userUri = params.user_uri;
       if (!userUri) {
-        const user = await this.calendly.getCurrentUser();
-        userUri = user.uri;
+        try {
+          const user = await this.calendly.getCurrentUser();
+          userUri = user.uri;
+          this.logger.info('Auto-detected user URI from current user', { userUri });
+        } catch (userError) {
+          this.logger.error('Failed to get current user for availability:', userError);
+          throw new Error('user_uri parameter is required when user detection fails');
+        }
       }
 
+      this.logger.info('Fetching availability schedules from Calendly API', { userUri });
       const schedules = await this.calendly.getUserAvailabilitySchedules(userUri);
       
       return {
@@ -283,7 +305,16 @@ export class CalendlyCoreTools {
       };
     } catch (error) {
       this.logger.error('Error fetching user availability:', error);
-      throw error;
+      
+      // Return better error information
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          code: 'USER_AVAILABILITY_ERROR',
+          details: error
+        }
+      };
     }
   }
 }

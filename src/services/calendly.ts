@@ -159,7 +159,7 @@ export class CalendlyService {
 
   // USER AVAILABILITY SCHEDULES  
   async getUserAvailabilitySchedules(userUri: string): Promise<any[]> {
-    const response = await this.get(`${userUri}/availability_schedules`);
+    const response = await this.get('/availability_schedules', { user: userUri });
     return response.collection;
   }
 
