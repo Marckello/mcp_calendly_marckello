@@ -8,6 +8,8 @@
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
+> **⚠️ IMPORTANTE**: Este repositorio usa exclusivamente la branch `main`. Nunca uses `master`.
+
 ## 🏗️ Arquitectura Empresarial
 
 ### 🔧 Stack Tecnológico Core
