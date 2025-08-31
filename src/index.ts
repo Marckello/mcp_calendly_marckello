@@ -58,9 +58,7 @@ class CalendlyMCPServer {
         accessToken: process.env.CALENDLY_ACCESS_TOKEN!
       },
       features: {
-        websocket: true,
-        sse: true,
-        n8n: true
+        mcp_protocol: true
       }
     };
 
@@ -323,32 +321,7 @@ class CalendlyMCPServer {
     this.expressApp.use(express.json({ limit: '10mb' }));
     this.expressApp.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // MCP protocol will be handled directly in the endpoint
-
-    // Health check endpoint
-    this.expressApp.get('/health', async (req, res) => {
-      try {
-        const calendlyHealth = await this.calendly.healthCheck();
-        
-        res.json({
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          service: 'MCP Calendly Server',
-          version: this.config.version,
-          features: ['mcp_protocol', 'n8n_compatible', 'webhooks'],
-          calendly: {
-            status: calendlyHealth.status,
-            user: calendlyHealth.user?.name
-          }
-        });
-      } catch (error) {
-        this.logger.error('Health check failed:', error);
-        res.status(503).json({
-          status: 'unhealthy',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
+    // MCP protocol handled directly in the endpoint below
 
     // MCP HTTP endpoint
     this.expressApp.post('/mcp', async (req, res) => {
@@ -505,103 +478,7 @@ class CalendlyMCPServer {
       }
     });
 
-    // N8N compatible endpoints (simplified)  
-    this.expressApp.get('/n8n/tools', async (req, res) => {
-      try {
-        // Return the same tools as MCP but in N8N format
-        const tools = [
-          // Core Tools
-          { name: 'calendly_get_current_user', description: 'Get current user information' },
-          { name: 'calendly_get_organization', description: 'Get organization details' },
-          { name: 'calendly_list_event_types', description: 'List user event types' },
-          { name: 'calendly_get_event_type', description: 'Get event type details' },
-          { name: 'calendly_list_scheduled_events', description: 'List scheduled events' },
-          { name: 'calendly_get_scheduled_event', description: 'Get scheduled event details' },
-          { name: 'calendly_cancel_scheduled_event', description: 'Cancel a scheduled event' },
-          { name: 'calendly_get_user_availability', description: 'Get user availability schedule' },
-          // Invitee Tools
-          { name: 'calendly_list_event_invitees', description: 'List event invitees' },
-          { name: 'calendly_get_invitee', description: 'Get invitee details' },
-          // Webhook Tools
-          { name: 'calendly_list_webhooks', description: 'List webhooks' },
-          { name: 'calendly_create_webhook', description: 'Create webhook' },
-          { name: 'calendly_get_webhook', description: 'Get webhook details' },
-          { name: 'calendly_delete_webhook', description: 'Delete webhook' }
-        ];
-        res.json({ tools });
-      } catch (error) {
-        this.logger.error('N8N tools list failed:', error);
-        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
-      }
-    });
 
-    this.expressApp.post('/n8n/execute', async (req, res) => {
-      try {
-        const { toolName, input } = req.body;
-        
-        // Execute the tool directly
-        let toolResult: any;
-
-        switch (toolName) {
-          case 'calendly_get_current_user':
-            toolResult = await this.coreTools.getCurrentUser();
-            break;
-          case 'calendly_get_organization':
-            toolResult = await this.coreTools.getOrganization();
-            break;
-          case 'calendly_list_event_types':
-            toolResult = await this.coreTools.listEventTypes(input || {});
-            break;
-          case 'calendly_get_event_type':
-            toolResult = await this.coreTools.getEventType(input || {});
-            break;
-          case 'calendly_list_scheduled_events':
-            toolResult = await this.coreTools.listScheduledEvents(input || {});
-            break;
-          case 'calendly_get_scheduled_event':
-            toolResult = await this.coreTools.getScheduledEvent(input || {});
-            break;
-          case 'calendly_cancel_scheduled_event':
-            toolResult = await this.coreTools.cancelScheduledEvent(input || {});
-            break;
-          case 'calendly_get_user_availability':
-            toolResult = await this.coreTools.getUserAvailability(input || {});
-            break;
-          case 'calendly_list_event_invitees':
-            toolResult = await this.inviteeTools.listEventInvitees(input || {});
-            break;
-          case 'calendly_get_invitee':
-            toolResult = await this.inviteeTools.getInvitee(input || {});
-            break;
-          case 'calendly_list_webhooks':
-            toolResult = await this.webhookTools.listWebhooks(input || {});
-            break;
-          case 'calendly_create_webhook':
-            toolResult = await this.webhookTools.createWebhook(input || {});
-            break;
-          case 'calendly_get_webhook':
-            toolResult = await this.webhookTools.getWebhook(input || {});
-            break;
-          case 'calendly_delete_webhook':
-            toolResult = await this.webhookTools.deleteWebhook(input || {});
-            break;
-          default:
-            throw new Error(`Tool ${toolName} not found`);
-        }
-        
-        // Convert to N8N format
-        res.json({
-          content: [{ type: 'text', text: JSON.stringify(toolResult, null, 2) }],
-          isError: false
-        });
-      } catch (error) {
-        this.logger.error('N8N tool execution failed:', error);
-        res.status(500).json({
-          content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` }],
-          isError: true
-        });
-      }
-    });
 
     // Create HTTP server
     this.httpServer = createServer(this.expressApp);
@@ -622,12 +499,7 @@ class CalendlyMCPServer {
             port: this.config.http.port,
             host: this.config.http.host,
             version: this.config.version,
-            endpoints: {
-              health: `http://${this.config.http.host}:${this.config.http.port}/health`,
-              mcp: `http://${this.config.http.host}:${this.config.http.port}/mcp`,
-              n8n_tools: `http://${this.config.http.host}:${this.config.http.port}/n8n/tools`,
-              n8n_execute: `http://${this.config.http.host}:${this.config.http.port}/n8n/execute`
-            }
+            endpoint: `http://${this.config.http.host}:${this.config.http.port}/mcp`
           });
         });
       } else {
