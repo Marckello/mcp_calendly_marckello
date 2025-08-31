@@ -59,6 +59,7 @@ class CalendlyMCPServer {
       },
       features: {
         mcp_protocol: true,
+        http_streamable: true,
         websocket: false,
         sse: false
       }
@@ -325,38 +326,60 @@ class CalendlyMCPServer {
 
     // MCP protocol handled directly in the endpoint below
 
+    // Handle OPTIONS preflight for /mcp endpoint
+    this.expressApp.options('/mcp', (req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.status(200).end();
+    });
+
     // MCP endpoint info (GET) - ÚNICO ENDPOINT DISPONIBLE
     this.expressApp.get('/mcp', async (req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(404).json({
         error: "Endpoint not found",
         available_endpoints: {
-          "POST /mcp": "MCP HTTP JSON-RPC endpoint - ÚNICO PUNTO DE CONEXIÓN"
+          "POST /mcp": "MCP HTTP Streamable JSON-RPC endpoint - ÚNICO PUNTO DE CONEXIÓN"
         },
-        message: "Este es el único endpoint disponible para conexiones MCP"
+        message: "Este es el único endpoint disponible para conexiones MCP",
+        transport: "HTTP Streamable",
+        protocol: "MCP 1.0 JSON-RPC 2.0"
       });
     });
 
-    // MCP HTTP endpoint for actual protocol communication (POST)
+    // MCP HTTP Streamable endpoint - ÚNICO ENDPOINT DISPONIBLE
     this.expressApp.post('/mcp', async (req, res) => {
       const startTime = Date.now();
       try {
-        this.logger.info('MCP Request:', req.body);
+        // Set headers for streaming response
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        this.logger.info('MCP Streamable Request:', req.body);
         const { jsonrpc, method, params, id } = req.body;
         
         if (jsonrpc !== '2.0') {
-          return res.json({
+          const errorResponse = {
             jsonrpc: '2.0',
             error: {
               code: -32600,
               message: 'Invalid Request - jsonrpc must be "2.0"'
             },
             id
-          });
+          };
+          res.write(JSON.stringify(errorResponse) + '\n');
+          res.end();
+          return;
         }
 
         let result: any;
 
-        // Handle different MCP methods
+        // Handle different MCP methods with streaming
         switch (method) {
           case 'tools/list':
             const tools = [
@@ -380,17 +403,20 @@ class CalendlyMCPServer {
 
           case 'tools/call':
             if (!params || !params.name) {
-              return res.json({
+              const errorResponse = {
                 jsonrpc: '2.0',
                 error: {
                   code: -32602,
                   message: 'Invalid params - tool name is required'
                 },
                 id
-              });
+              };
+              res.write(JSON.stringify(errorResponse) + '\n');
+              res.end();
+              return;
             }
 
-            this.logger.info(`Executing tool: ${params.name}`);
+            this.logger.info(`Executing tool via streamable: ${params.name}`);
             let toolResult: any;
 
             // Execute the tool
@@ -438,14 +464,17 @@ class CalendlyMCPServer {
                 toolResult = await this.webhookTools.deleteWebhook(params.arguments || {});
                 break;
               default:
-                return res.json({
+                const errorResponse = {
                   jsonrpc: '2.0',
                   error: {
                     code: -32601,
                     message: `Tool ${params.name} not found`
                   },
                   id
-                });
+                };
+                res.write(JSON.stringify(errorResponse) + '\n');
+                res.end();
+                return;
             }
             
             result = {
@@ -459,35 +488,44 @@ class CalendlyMCPServer {
             break;
 
           default:
-            return res.json({
+            const errorResponse = {
               jsonrpc: '2.0',
               error: {
                 code: -32601,
                 message: `Method not found: ${method}`
               },
               id
-            });
+            };
+            res.write(JSON.stringify(errorResponse) + '\n');
+            res.end();
+            return;
         }
 
         const executionTime = Date.now() - startTime;
-        this.logger.info(`MCP request completed in ${executionTime}ms`);
+        this.logger.info(`MCP streamable request completed in ${executionTime}ms`);
 
-        res.json({
+        // Send successful response with streaming
+        const response = {
           jsonrpc: '2.0',
           result,
           id
-        });
+        };
+
+        res.write(JSON.stringify(response) + '\n');
+        res.end();
 
       } catch (error) {
-        this.logger.error('MCP request failed:', error);
-        res.status(500).json({
+        this.logger.error('MCP streamable request failed:', error);
+        const errorResponse = {
           jsonrpc: '2.0',
           error: {
             code: -32603,
             message: error instanceof Error ? error.message : 'Internal error'
           },
-          id: req.body.id || null
-        });
+          id: req.body?.id || null
+        };
+        res.write(JSON.stringify(errorResponse) + '\n');
+        res.end();
       }
     });
 
@@ -512,7 +550,7 @@ class CalendlyMCPServer {
             port: this.config.http.port,
             host: this.config.http.host,
             version: this.config.version,
-            endpoint_unico: `http://${this.config.http.host}:${this.config.http.port}/mcp`
+            endpoint_unico_streamable: `http://${this.config.http.host}:${this.config.http.port}/mcp`
           });
         });
       } else {
