@@ -1,6 +1,6 @@
 {
   "name": "mcp-calendly-streaming",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Enterprise-grade MCP (Model Context Protocol) streaming server for Calendly API integration with bidirectional WebSocket/SSE communication",
   "main": "dist/server.js",
   "type": "module",

@@ -165,12 +165,44 @@ curl http://localhost:3000/api/stream
 |----------|--------|-------------|
 | `/health` | GET | Health check con métricas |
 | `/api/status` | GET | Status detallado del sistema |
+| **`/mcp`** | **POST** | **🚀 JSON-RPC 2.0 endpoint para n8n (PRINCIPAL)** |
 | `/api/mcp/tools` | GET | Lista herramientas MCP |
 | `/api/mcp/tools/call` | POST | Ejecutar herramienta MCP |
 | `/api/stream` | GET | SSE streaming endpoint |
 | `/ws` | WebSocket | WebSocket connection |
 | `/api/webhooks/calendly` | POST | Calendly webhooks receiver |
 | `/api/admin/audit/stats` | GET | Estadísticas de auditoría |
+
+### 🎯 **Endpoint Principal `/mcp` - JSON-RPC 2.0**
+
+**¡NUEVO!** Endpoint optimizado para integración directa con **n8n HTTP Streamable transport**:
+
+```bash
+# Listar todas las herramientas disponibles
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+
+# Ejecutar herramienta específica
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0", 
+    "method": "tools/call", 
+    "params": {
+      "name": "calendly_get_current_user",
+      "arguments": {}
+    }, 
+    "id": 2
+  }'
+```
+
+**✅ Características:**
+- **JSON-RPC 2.0** completamente compatible
+- **14 herramientas Calendly** listas para usar
+- **Error handling** robusto con códigos estándar
+- **Respuestas estructuradas** para n8n
+- **Logging completo** de requests/responses
 
 ## 🏗️ **Arquitectura de Datos**
 
