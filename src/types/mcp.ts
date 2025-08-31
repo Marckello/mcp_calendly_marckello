@@ -13,9 +13,7 @@ export interface MCPServerConfig {
     timeout?: number;
   };
   features: {
-    websocket: boolean;
-    sse: boolean;
-    n8n: boolean;
+    mcp_protocol: boolean;
   };
   logging?: {
     level: 'error' | 'warn' | 'info' | 'debug';
