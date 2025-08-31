@@ -1,0 +1,60 @@
+{
+  "name": "mcp-woocommerce-server",
+  "description": "MCP Server for WooCommerce integration with n8n support",
+  "repository": {
+    "url": "https://github.com/TU-USERNAME/mcp-woocommerce-server",
+    "branch": "main",
+    "dockerfile": "Dockerfile"
+  },
+  "environment": {
+    "required": [
+      {
+        "name": "WOOCOMMERCE_SITE_URL",
+        "description": "Your WooCommerce store URL (e.g., https://your-store.com)"
+      },
+      {
+        "name": "WOOCOMMERCE_CONSUMER_KEY", 
+        "description": "WooCommerce REST API Consumer Key"
+      },
+      {
+        "name": "WOOCOMMERCE_CONSUMER_SECRET",
+        "description": "WooCommerce REST API Consumer Secret"
+      }
+    ],
+    "optional": [
+      {
+        "name": "PORT",
+        "value": "3000",
+        "description": "Server port"
+      },
+      {
+        "name": "LOG_LEVEL",
+        "value": "info",
+        "description": "Logging level"
+      },
+      {
+        "name": "N8N_ENABLED",
+        "value": "false",
+        "description": "Enable n8n integration"
+      },
+      {
+        "name": "N8N_WEBHOOK_URL",
+        "value": "",
+        "description": "n8n webhook URL"
+      }
+    ]
+  },
+  "ports": [
+    {
+      "internal": 3000,
+      "external": 80,
+      "protocol": "http"
+    }
+  ],
+  "health_check": {
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  }
+}

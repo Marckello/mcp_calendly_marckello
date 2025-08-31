@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mcp-woocommerce:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: mcp-woocommerce-server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - WOOCOMMERCE_SITE_URL=${WOOCOMMERCE_SITE_URL}
+      - WOOCOMMERCE_CONSUMER_KEY=${WOOCOMMERCE_CONSUMER_KEY}
+      - WOOCOMMERCE_CONSUMER_SECRET=${WOOCOMMERCE_CONSUMER_SECRET}
+      - WOOCOMMERCE_API_VERSION=${WOOCOMMERCE_API_VERSION:-3}
+      - WOOCOMMERCE_TIMEOUT=${WOOCOMMERCE_TIMEOUT:-30000}
+      - ENABLE_CORS=${ENABLE_CORS:-true}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-}
+      - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET:-}
+      - N8N_ENABLED=${N8N_ENABLED:-false}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  mcp-network:
+    driver: bridge
+    name: mcp-network
+
+volumes:
+  logs:
+    driver: local
+  data:
+    driver: local

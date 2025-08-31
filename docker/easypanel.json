@@ -1,0 +1,142 @@
+{
+  "name": "mcp-woocommerce-server",
+  "description": "MCP Server for WooCommerce integration with n8n support",
+  "logo": "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/woocommerce.png",
+  "version": "1.0.0",
+  "author": "Marco - Marketing Digital Expert",
+  "website": "https://github.com/your-username/mcp-woocommerce-server",
+  "categories": ["automation", "ecommerce", "api"],
+  "ports": [
+    {
+      "port": 3000,
+      "protocol": "http",
+      "description": "HTTP API and health check endpoint"
+    }
+  ],
+  "environment": [
+    {
+      "name": "WOOCOMMERCE_SITE_URL",
+      "description": "Your WooCommerce store URL (e.g., https://your-store.com)",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "name": "WOOCOMMERCE_CONSUMER_KEY",
+      "description": "WooCommerce REST API Consumer Key",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "name": "WOOCOMMERCE_CONSUMER_SECRET",
+      "description": "WooCommerce REST API Consumer Secret",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "name": "WOOCOMMERCE_API_VERSION",
+      "description": "WooCommerce API version (1, 2, or 3)",
+      "required": false,
+      "type": "string",
+      "default": "3"
+    },
+    {
+      "name": "WOOCOMMERCE_TIMEOUT",
+      "description": "API request timeout in milliseconds",
+      "required": false,
+      "type": "string",
+      "default": "30000"
+    },
+    {
+      "name": "LOG_LEVEL",
+      "description": "Logging level (error, warn, info, debug)",
+      "required": false,
+      "type": "string",
+      "default": "info"
+    },
+    {
+      "name": "ENABLE_CORS",
+      "description": "Enable CORS for cross-origin requests",
+      "required": false,
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "name": "N8N_WEBHOOK_URL",
+      "description": "n8n webhook URL for integration (optional)",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "name": "N8N_WEBHOOK_SECRET",
+      "description": "n8n webhook secret for security (optional)",
+      "required": false,
+      "type": "string"
+    },
+    {
+      "name": "N8N_ENABLED",
+      "description": "Enable n8n integration features",
+      "required": false,
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "volumes": [
+    {
+      "name": "logs",
+      "path": "/app/logs",
+      "description": "Application logs storage"
+    },
+    {
+      "name": "data",
+      "path": "/app/data", 
+      "description": "Application data storage"
+    }
+  ],
+  "healthcheck": {
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  },
+  "restart_policy": "unless-stopped",
+  "networks": ["default"],
+  "labels": {
+    "traefik.enable": "true",
+    "traefik.http.routers.mcp-woocommerce.rule": "Host(`mcp-woocommerce.yourdomain.com`)",
+    "traefik.http.routers.mcp-woocommerce.tls": "true",
+    "traefik.http.routers.mcp-woocommerce.tls.certresolver": "letsencrypt",
+    "traefik.http.services.mcp-woocommerce.loadbalancer.server.port": "3000"
+  },
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile",
+    "target": "production"
+  },
+  "deployment": {
+    "replicas": 1,
+    "strategy": "recreate",
+    "resources": {
+      "limits": {
+        "memory": "512Mi",
+        "cpu": "500m"
+      },
+      "requests": {
+        "memory": "256Mi",
+        "cpu": "100m"
+      }
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "endpoints": [
+      {
+        "path": "/health",
+        "description": "Health check endpoint"
+      },
+      {
+        "path": "/info",
+        "description": "Server and store information"
+      }
+    ]
+  }
+}
