@@ -2,6 +2,7 @@
 
 import express from 'express'
 import { createServer } from 'http'
+import * as http from 'http'
 import helmet from 'helmet'
 import cors from 'cors'
 import morgan from 'morgan'
@@ -115,12 +116,12 @@ const logger = winston.createLogger({
 export class CalendlyMCPStreamingServer {
   private app: express.Application
   private httpServer: http.Server
-  private wsServer: WebSocketStreamingServer
-  private sseServer: SSEStreamingServer
-  private securityService: SecurityService
-  private auditService: AuditService
-  private calendlyService: CalendlyEnterpriseService
-  private toolRegistry: MCPToolRegistry
+  private wsServer!: WebSocketStreamingServer
+  private sseServer!: SSEStreamingServer
+  private securityService!: SecurityService
+  private auditService!: AuditService
+  private calendlyService!: CalendlyEnterpriseService
+  private toolRegistry!: MCPToolRegistry
 
   constructor() {
     this.app = express()
@@ -198,15 +199,15 @@ export class CalendlyMCPStreamingServer {
     this.app.use(helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: [\"'self'\"],
-          scriptSrc: [\"'self'\", \"'unsafe-inline'\"],
-          styleSrc: [\"'self'\", \"'unsafe-inline'\"],
-          imgSrc: [\"'self'\", 'data:', 'https:'],
-          connectSrc: [\"'self'\", 'wss:', 'ws:'],
-          fontSrc: [\"'self'\"],
-          objectSrc: [\"'none'\"],
-          mediaSrc: [\"'self'\"],
-          frameSrc: [\"'none'\"]
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'wss:', 'ws:'],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"]
         }
       },
       crossOriginEmbedderPolicy: false
@@ -463,6 +464,137 @@ export class CalendlyMCPStreamingServer {
       }
     })
 
+    // MCP JSON-RPC 2.0 endpoint for n8n integration
+    this.app.post('/mcp', async (req, res) => {
+      const startTime = Date.now()
+      
+      try {
+        // Validate JSON-RPC 2.0 request
+        const { jsonrpc, method, params, id } = req.body
+
+        if (jsonrpc !== '2.0') {
+          return res.json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32600,
+              message: 'Invalid Request - jsonrpc must be "2.0"'
+            },
+            id: id || null
+          })
+        }
+
+        let result: any
+
+        switch (method) {
+          case 'tools/list':
+            try {
+              const tools = this.toolRegistry.getTools()
+              result = {
+                tools: tools.map(tool => ({
+                  name: tool.name,
+                  description: tool.description,
+                  inputSchema: tool.inputSchema
+                }))
+              }
+            } catch (error) {
+              return res.json({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32603,
+                  message: 'Internal error listing tools',
+                  data: error instanceof Error ? error.message : 'Unknown error'
+                },
+                id
+              })
+            }
+            break
+
+          case 'tools/call':
+            try {
+              if (!params || !params.name) {
+                return res.json({
+                  jsonrpc: '2.0',
+                  error: {
+                    code: -32602,
+                    message: 'Invalid params - tool name is required'
+                  },
+                  id
+                })
+              }
+
+              const toolResult = await this.toolRegistry.executeTool(
+                params.name, 
+                params.arguments || {}
+              )
+              
+              result = {
+                content: [{
+                  type: 'text',
+                  text: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)
+                }],
+                isError: false
+              }
+
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+              
+              logger.error('MCP tool execution failed', {
+                tool_name: params?.name,
+                error: errorMessage,
+                duration_ms: Date.now() - startTime
+              })
+
+              return res.json({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32603,
+                  message: 'Tool execution failed',
+                  data: errorMessage
+                },
+                id
+              })
+            }
+            break
+
+          default:
+            return res.json({
+              jsonrpc: '2.0',
+              error: {
+                code: -32601,
+                message: `Method not found: ${method}`
+              },
+              id
+            })
+        }
+
+        // Success response
+        res.json({
+          jsonrpc: '2.0',
+          result,
+          id
+        })
+
+      } catch (error) {
+        const duration = Date.now() - startTime
+        
+        logger.error('MCP endpoint error', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          body: req.body,
+          duration_ms: duration
+        })
+
+        res.json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32700,
+            message: 'Parse error or internal server error',
+            data: error instanceof Error ? error.message : 'Unknown error'
+          },
+          id: req.body?.id || null
+        })
+      }
+    })
+
     // SSE streaming endpoint
     this.app.get('/api/stream', (req, res) => {
       this.sseServer.handleSSEConnection(req, res)
@@ -700,10 +832,16 @@ export class CalendlyMCPStreamingServer {
 
   public async start(): Promise<void> {
     try {
-      // Test Calendly connection
+      // Test Calendly connection (temporarily disabled for MCP endpoint testing)
       logger.info('Testing Calendly API connection...')
-      const user = await this.calendlyService.getCurrentUser()
-      logger.info(`✅ Connected to Calendly as: ${user.name} (${user.email})`)
+      try {
+        const user = await this.calendlyService.getCurrentUser()
+        logger.info(`✅ Connected to Calendly as: ${user.name} (${user.email})`)
+      } catch (error) {
+        logger.warn('⚠️ Calendly connection failed, but continuing server startup for MCP endpoint testing', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }
 
       // Start HTTP server
       await new Promise<void>((resolve) => {
@@ -726,6 +864,7 @@ export class CalendlyMCPStreamingServer {
         status: `/api/status`,
         tools: `/api/mcp/tools`,
         tool_call: `/api/mcp/tools/call`,
+        mcp_jsonrpc: `/mcp`,
         streaming: `/api/stream`,
         websocket: `/ws`,
         webhooks: `/api/webhooks/calendly`
