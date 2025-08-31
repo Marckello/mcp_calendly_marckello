@@ -1,291 +1,237 @@
-# MCP Calendly Server v1.3.0 - N8N Compatible
+# MCP Calendly Server v1.0 - n8n Compatible
 
-## Complete MCP (Model Context Protocol) Server for Calendly Integration
+A Model Context Protocol (MCP) server that provides seamless integration between Calendly and n8n workflow automation platform.
 
-**Production-Ready** | **Real API Integration** | **EasyPanel Deployment** | **N8N Automation Support** | **Schema Compatible**
+## ✨ Features
 
-## Project Overview
+- 🔌 **Full n8n MCP Client Tool compatibility**
+- 📅 **14 Calendly tools** for complete calendar automation
+- 🔐 **Secure authentication** with Calendly Personal Access Token
+- 🚀 **Production-ready** with PM2 process management
+- 📊 **Real-time data** from your Calendly account
+- 🎯 **HTTP Streamable** protocol support
 
-- **Name**: MCP Calendly Server
-- **Version**: v1.3.0
-- **Goal**: Complete Calendly automation through MCP protocol
-- **Features**: 14 comprehensive Calendly API tools with bidirectional MCP communication
-- **N8N Compatible**: Specialized endpoints for N8N workflow automation
+## 🛠️ Available Tools
 
-## Live URLs
-
-- **Production**: Ready for EasyPanel deployment
-- **GitHub**: https://github.com/Marckello/mcp_calendly_marckello
-- **MCP Protocol**: Native MCP with WebSocket & SSE support
-- **N8N Endpoints**: `/n8n/tools` and `/n8n/execute` for workflow automation
-
-## N8N Integration
-
-### **SOLVED: N8N Schema Compatibility Errors**
-
-If you're getting **"Received tool input did not match expected schema"** errors in N8N, use these **specialized N8N endpoints**:
-
-#### **N8N-Compatible Endpoints:**
-
-- **GET `/n8n/tools`** - Get available tools in N8N-compatible format
-- **POST `/n8n/execute`** - Execute tools with N8N schema validation
-
-#### **Example N8N Request:**
-
-```json
-POST /n8n/execute
-{
-  "toolName": "calendly_get_current_user",
-  "input": {}
-}
-```
-
-#### **N8N Response Format:**
-
-```json
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "{\"success\": true, \"data\": {...}}"
-    }
-  ],
-  "isError": false
-}
-```
-
-## Technical Architecture
-
-### **Core Technologies**
-
-- **Framework**: TypeScript + Node.js + Express
-- **Protocol**: MCP (Model Context Protocol) with JSON-RPC 2.0
-- **Transport**: HTTP + WebSocket + Server-Sent Events (SSE)
-- **API Integration**: Calendly REST API v1
-- **N8N Compatibility**: Schema validation layer for workflow automation
-- **Deployment**: Docker multi-stage builds for EasyPanel
-- **Automation**: N8n workflow integration with dedicated endpoints
-
-### **Data Architecture**
-
-- **Calendly API**: Real-time data integration
-- **User Management**: Current user and organization information
-- **Event Management**: Event types, scheduled events, and invitees
-- **Webhook Integration**: Real-time notifications and automation
-- **Availability**: User availability schedules and rules
-
-### **Security & Validation**
-
-- **Authentication**: Calendly Personal Access Token
-- **Validation**: Joi schemas for all API inputs
-- **N8N Compatibility**: Input sanitization and schema validation
-- **Security**: Helmet + CORS middleware
-- **Logging**: Winston structured logging
-- **Error Handling**: Comprehensive error management
-
-## MCP Tools Available (14 Tools)
-
-### **Core User & Organization Tools**
-
+### User & Organization
 - `calendly_get_current_user` - Get current user information
 - `calendly_get_organization` - Get organization details
 
-### **Event Type Management**
-
+### Event Types
 - `calendly_list_event_types` - List user event types
 - `calendly_get_event_type` - Get event type details
 
-### **Scheduled Events Management**
-
+### Scheduled Events
 - `calendly_list_scheduled_events` - List scheduled events
 - `calendly_get_scheduled_event` - Get scheduled event details
 - `calendly_cancel_scheduled_event` - Cancel a scheduled event
 
-### **Invitee Management**
+### Availability
+- `calendly_get_user_availability` - Get user availability schedule
 
+### Invitees
 - `calendly_list_event_invitees` - List event invitees
 - `calendly_get_invitee` - Get invitee details
 
-### **Availability Management**
-
-- `calendly_get_user_availability` - Get user availability schedule
-
-### **Webhook Management**
-
-- `calendly_list_webhooks` - List webhook subscriptions
-- `calendly_create_webhook` - Create new webhook
+### Webhooks
+- `calendly_list_webhooks` - List webhooks
+- `calendly_create_webhook` - Create webhook
 - `calendly_get_webhook` - Get webhook details
 - `calendly_delete_webhook` - Delete webhook
 
-## Deployment Guide
+## 📦 Installation
 
-### **EasyPanel Deployment**
+### Prerequisites
+- Node.js v18+ 
+- npm or yarn
+- Calendly Personal Access Token
+- n8n instance (for integration)
 
+### Setup
+
+1. **Clone the repository**
 ```bash
-# 1. Configure environment variables in EasyPanel
-CALENDLY_ACCESS_TOKEN=your_personal_access_token
-NODE_ENV=production
-PORT=3000
-HTTP_MODE=true
-
-# 2. Deploy with Docker
-docker build -t mcp-calendly-server .
+git clone https://github.com/Marckello/mcp_calendly_marckello.git
+cd mcp_calendly_marckello
 ```
 
-### **Local Development**
-
+2. **Install dependencies**
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your Calendly access token
-
-# 3. Build and start
-npm run build
-npm start
-
-# 4. Test MCP endpoints
-curl http://localhost:3000/health
-curl http://localhost:3000/mcp -X POST -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
-
-# 5. Test N8N endpoints
-curl http://localhost:3000/n8n/tools
 ```
 
-## MCP Protocol Integration
-
-### **Connection Methods**
-
-- **HTTP**: `POST http://localhost:3000/mcp`
-- **WebSocket**: `ws://localhost:3000/mcp-ws`
-- **Server-Sent Events**: `http://localhost:3000/mcp-sse`
-- **N8N Compatible**: `POST http://localhost:3000/n8n/execute`
-
-### **Example MCP Request**
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "calendly_get_current_user",
-    "arguments": {}
-  }
-}
-```
-
-### **Example N8N Request**
-
-```json
-{
-  "toolName": "calendly_list_event_types",
-  "input": {
-    "active_only": true
-  }
-}
-```
-
-## N8n Automation Integration
-
-### **Standard Webhook Endpoint**
-
-- **URL**: `http://localhost:3000/webhook/n8n`
-- **Method**: POST
-- **Content-Type**: application/json
-
-### **N8N-Compatible Tool Endpoints**
-
-- **Tools List**: `GET http://localhost:3000/n8n/tools`
-- **Execute Tool**: `POST http://localhost:3000/n8n/execute`
-
-### **Integration Features**
-
-- Schema-validated tool execution
-- Real-time event notifications
-- Automated scheduling workflows
-- Invitee management automation
-- Webhook-based integrations
-
-## Security & Best Practices
-
-### **Production Configuration**
-
-- Environment variables for credentials
-- Input validation with Joi schemas
-- N8N schema compatibility layer
-- Rate limiting and security headers
-- Structured logging for monitoring
-- Error handling and recovery
-- Docker multi-stage builds
-
-### **API Rate Limits**
-
-- Calendly API: Standard rate limits apply
-- MCP Protocol: No artificial limits
-- N8N Endpoints: Validated input processing
-- Error recovery: Automatic retry logic
-
-## Environment Variables
-
+3. **Configure environment**
 ```bash
-# Required
-CALENDLY_ACCESS_TOKEN=your_calendly_personal_access_token
-
-# Optional
-NODE_ENV=production
-HTTP_MODE=true
-PORT=3000
-HOST=0.0.0.0
-LOG_LEVEL=info
+cp .env.example .env
+# Edit .env and add your Calendly Personal Access Token
 ```
 
-## Getting Calendly Access Token
+4. **Get your Calendly token**
+- Go to [Calendly Developer Settings](https://calendly.com/integrations/api_webhooks)
+- Generate a Personal Access Token
+- Add it to your `.env` file:
+```env
+CALENDLY_ACCESS_TOKEN=your_token_here
+```
 
-1. Go to [Calendly Developer Settings](https://calendly.com/integrations/api_webhooks)
-2. Generate a Personal Access Token
-3. Copy the token to your environment variables
+## 🚀 Running the Server
 
-## Recent Updates (v1.3.0)
+### Development
+```bash
+npm run dev
+```
 
-### **Complete Calendly Integration**
+### Production with PM2
+```bash
+# Install PM2 globally
+npm install -g pm2
 
-- **Full API Coverage** - All major Calendly endpoints supported
-- **MCP Protocol Compatibility** - Native MCP 1.0 implementation
-- **N8N Schema Compatibility** - Dedicated endpoints for N8N workflows
-- **Real-time Webhooks** - Complete webhook management tools
+# Start the server
+pm2 start server.js --name "mcp-calendly"
 
-### **Production Ready Features**
+# View logs
+pm2 logs mcp-calendly
 
-- **Docker Multi-stage Build** - Optimized for EasyPanel deployment
-- **Comprehensive Error Handling** - Robust error recovery and logging
-- **Security Hardened** - Helmet, CORS, and input validation
-- **Structured Logging** - Winston-based logging for monitoring
+# Monitor
+pm2 status
+```
 
-## Production Verification
+### Production with Supervisor
+```bash
+# Install supervisor
+pip install supervisor
 
-**All critical tools tested with real Calendly API:**
+# Start with supervisor
+supervisord -c supervisord.conf
 
-- User Information: Real user data retrieval
-- Event Types: Active event type management
-- Scheduled Events: Complete event lifecycle
-- Invitee Management: Full invitee operations
-- Webhook Integration: Real-time notifications
-- N8N Compatibility: Schema validation verified
-- Zero mock data: 100% real Calendly API integration
+# Check status
+supervisorctl status
+```
 
-## Support & Maintenance
+## 🔗 n8n Integration
 
-- **Status**: Production Ready
-- **Platform**: EasyPanel optimized
-- **N8N Compatible**: Schema validation layer included
-- **Tech Stack**: TypeScript + Node.js + Express + Docker
-- **Last Updated**: 2025-08-31
-- **Verified**: Real Calendly API integration + N8N compatibility
+### Configuration in n8n
+
+1. Add a new **MCP Client Tool** node
+2. Configure with these settings:
+   - **Endpoint**: `http://localhost:3000/mcp` (or your server URL)
+   - **Server Transport**: `HTTP Streamable`
+   - **Authentication**: `None`
+   - **Tools to Include**: `Selected` (choose the tools you need)
+
+### Example n8n Workflow
+
+```json
+{
+  "nodes": [
+    {
+      "type": "n8n-nodes-langchain.mcpClientTool",
+      "parameters": {
+        "endpoint": "http://localhost:3000/mcp",
+        "transport": "HTTP Streamable",
+        "tools": ["calendly_get_current_user", "calendly_list_scheduled_events"]
+      }
+    }
+  ]
+}
+```
+
+## 🔧 API Endpoints
+
+### MCP Protocol Endpoint
+- **POST** `/mcp` - Main MCP protocol endpoint
+
+Supports three methods:
+- `initialize` - Protocol handshake
+- `tools/list` - Get available tools
+- `tools/call` - Execute a tool
+
+### Health Check
+- **GET** `/health` - Server health status
+
+## 📝 Example Usage
+
+### Get Current User
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "calendly_get_current_user",
+      "arguments": {}
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  }'
+```
+
+### List Scheduled Events
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "calendly_list_scheduled_events",
+      "arguments": {
+        "count": 10,
+        "status": "active"
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 2
+  }'
+```
+
+## 🐳 Docker Support
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+Build and run:
+```bash
+docker build -t mcp-calendly .
+docker run -p 3000:3000 --env-file .env mcp-calendly
+```
+
+## 🔒 Security
+
+- Store your Calendly token in environment variables
+- Never commit `.env` file to repository
+- Use HTTPS in production
+- Implement rate limiting for production use
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🆘 Support
+
+- **Issues**: [GitHub Issues](https://github.com/Marckello/mcp_calendly_marckello/issues)
+- **Documentation**: [Calendly API Docs](https://developer.calendly.com/api-docs)
+- **n8n Community**: [n8n Community Forum](https://community.n8n.io)
+
+## 🏷️ Version
+
+Current version: 1.0.0
+
+## 👨‍💻 Author
+
+**Marco Serrano**
+- GitHub: [@Marckello](https://github.com/Marckello)
 
 ---
 
-**Ready for production deployment with complete Calendly automation capabilities and N8N workflow integration.**
+Made with ❤️ for the n8n and MCP community
