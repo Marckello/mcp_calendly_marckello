@@ -177,16 +177,18 @@ curl http://localhost:3000/api/stream
 
 ### 🎯 **Endpoint Principal `/mcp` - JSON-RPC 2.0**
 
-**¡NUEVO!** Endpoint optimizado para integración directa con **n8n HTTP Streamable transport**:
+**⚡ ENDPOINT DE PRODUCCIÓN**: `https://mcp-calendly.serrano.marketing/mcp`
+
+Endpoint optimizado para integración directa con **n8n HTTP Streamable transport**:
 
 ```bash
-# Listar todas las herramientas disponibles
-curl -X POST http://localhost:3000/mcp \
+# Listar todas las herramientas disponibles (PRODUCCIÓN)
+curl -X POST https://mcp-calendly.serrano.marketing/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
 
-# Ejecutar herramienta específica
-curl -X POST http://localhost:3000/mcp \
+# Ejecutar herramienta específica (PRODUCCIÓN)
+curl -X POST https://mcp-calendly.serrano.marketing/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0", 
