@@ -60,6 +60,7 @@ class CalendlyMCPServer {
       features: {
         mcp_protocol: true,
         http_streamable: true,
+        n8n_compatible: false,
         websocket: false,
         sse: false
       }

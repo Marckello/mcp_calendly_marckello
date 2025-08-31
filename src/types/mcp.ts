@@ -14,6 +14,7 @@ export interface MCPServerConfig {
   };
   features: {
     mcp_protocol: boolean;
+    http_streamable: boolean;
     n8n_compatible: boolean;
     websocket: boolean;
     sse: boolean;
