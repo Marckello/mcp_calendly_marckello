@@ -169,11 +169,10 @@ export class CalendlyService {
   }
 
   // WEBHOOKS
-  async getWebhooks(organizationUri: string, scope?: string): Promise<CalendlyWebhook[]> {
-    const params: any = { organization: organizationUri };
-    if (scope) params.scope = scope;
-    
-    const response = await this.get('/webhook_subscriptions', params);
+  async getWebhooks(organizationUri?: string, scope?: string): Promise<CalendlyWebhook[]> {
+    // For API v2, try without query parameters first
+    // The API may return all webhooks accessible to the token
+    const response = await this.get('/webhook_subscriptions');
     return response.collection;
   }
 

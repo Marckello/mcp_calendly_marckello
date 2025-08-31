@@ -40,7 +40,7 @@ export class CalendlyWebhookTools {
       }
 
       this.logger.info('Fetching webhooks from Calendly API', { organizationUri, scope: params.scope });
-      const webhooks = await this.calendly.getWebhooks(organizationUri, params.scope);
+      const webhooks = await this.calendly.getWebhooks();
       
       const activeWebhooks = webhooks.filter(w => w.state === 'active');
       const disabledWebhooks = webhooks.filter(w => w.state === 'disabled');

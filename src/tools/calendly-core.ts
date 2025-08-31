@@ -291,16 +291,19 @@ export class CalendlyCoreTools {
         }
       }
 
-      this.logger.info('Fetching availability schedules from Calendly API', { userUri });
-      const schedules = await this.calendly.getUserAvailabilitySchedules(userUri);
+      // Note: User availability schedules may not be available in Calendly API v2
+      // The v1 API was deprecated August 2025, and this endpoint may have changed
+      this.logger.warn('User availability schedules endpoint may not be available in API v2', { userUri });
       
       return {
-        success: true,
-        data: {
-          availability_schedules: schedules,
-          count: schedules.length,
-          summary: `Found ${schedules.length} availability schedules`,
-          user_uri: userUri
+        success: false,
+        error: {
+          message: 'User availability schedules endpoint is not available in Calendly API v2. This feature was deprecated with API v1 in August 2025.',
+          code: 'AVAILABILITY_NOT_SUPPORTED',
+          details: {
+            user_uri: userUri,
+            suggestion: 'Use calendly_list_event_types to see available event types, or check specific event type availability using the event type URI.'
+          }
         }
       };
     } catch (error) {
