@@ -14,6 +14,9 @@ export interface MCPServerConfig {
   };
   features: {
     mcp_protocol: boolean;
+    n8n_compatible: boolean;
+    websocket: boolean;
+    sse: boolean;
   };
   logging?: {
     level: 'error' | 'warn' | 'info' | 'debug';
