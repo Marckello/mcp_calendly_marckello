@@ -492,7 +492,198 @@ class CalendlyMCPServer {
       }
     });
 
-    // N8N compatible endpoints (required for N8N integration)
+    // MCP HTTP Streamable endpoint for N8N (required for N8N integration)
+    this.expressApp.all('/stream', async (req, res) => {
+      try {
+        // Set headers for streaming response
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        // Handle OPTIONS preflight
+        if (req.method === 'OPTIONS') {
+          res.status(200).end();
+          return;
+        }
+
+        this.logger.info('HTTP Streamable request from N8N', { 
+          method: req.method, 
+          headers: req.headers,
+          body: req.body 
+        });
+
+        // For HTTP Streamable, we handle MCP protocol with streaming response
+        if (req.method === 'POST' && req.body) {
+          const { jsonrpc, method, params, id } = req.body;
+          
+          if (jsonrpc !== '2.0') {
+            const errorResponse = {
+              jsonrpc: '2.0',
+              error: { code: -32600, message: 'Invalid Request - jsonrpc must be "2.0"' },
+              id
+            };
+            res.write(JSON.stringify(errorResponse) + '\n');
+            res.end();
+            return;
+          }
+
+          let result: any;
+
+          // Handle MCP methods for streaming
+          switch (method) {
+            case 'tools/list':
+              const tools = [
+                { name: 'calendly_get_current_user', description: 'Get current user information' },
+                { name: 'calendly_get_organization', description: 'Get organization details' },
+                { name: 'calendly_list_event_types', description: 'List user event types' },
+                { name: 'calendly_get_event_type', description: 'Get event type details' },
+                { name: 'calendly_list_scheduled_events', description: 'List scheduled events' },
+                { name: 'calendly_get_scheduled_event', description: 'Get scheduled event details' },
+                { name: 'calendly_cancel_scheduled_event', description: 'Cancel a scheduled event' },
+                { name: 'calendly_get_user_availability', description: 'Get user availability schedule' },
+                { name: 'calendly_list_event_invitees', description: 'List event invitees' },
+                { name: 'calendly_get_invitee', description: 'Get invitee details' },
+                { name: 'calendly_list_webhooks', description: 'List webhooks' },
+                { name: 'calendly_create_webhook', description: 'Create webhook' },
+                { name: 'calendly_get_webhook', description: 'Get webhook details' },
+                { name: 'calendly_delete_webhook', description: 'Delete webhook' }
+              ];
+              result = { tools };
+              break;
+
+            case 'tools/call':
+              if (!params || !params.name) {
+                const errorResponse = {
+                  jsonrpc: '2.0',
+                  error: { code: -32602, message: 'Invalid params - tool name is required' },
+                  id
+                };
+                res.write(JSON.stringify(errorResponse) + '\n');
+                res.end();
+                return;
+              }
+
+              this.logger.info(`Executing tool via streamable: ${params.name}`);
+              let toolResult: any;
+
+              // Execute the tool (same logic as regular MCP)
+              switch (params.name) {
+                case 'calendly_get_current_user':
+                  toolResult = await this.coreTools.getCurrentUser();
+                  break;
+                case 'calendly_get_organization':
+                  toolResult = await this.coreTools.getOrganization();
+                  break;
+                case 'calendly_list_event_types':
+                  toolResult = await this.coreTools.listEventTypes(params.arguments || {});
+                  break;
+                case 'calendly_get_event_type':
+                  toolResult = await this.coreTools.getEventType(params.arguments || {});
+                  break;
+                case 'calendly_list_scheduled_events':
+                  toolResult = await this.coreTools.listScheduledEvents(params.arguments || {});
+                  break;
+                case 'calendly_get_scheduled_event':
+                  toolResult = await this.coreTools.getScheduledEvent(params.arguments || {});
+                  break;
+                case 'calendly_cancel_scheduled_event':
+                  toolResult = await this.coreTools.cancelScheduledEvent(params.arguments || {});
+                  break;
+                case 'calendly_get_user_availability':
+                  toolResult = await this.coreTools.getUserAvailability(params.arguments || {});
+                  break;
+                case 'calendly_list_event_invitees':
+                  toolResult = await this.inviteeTools.listEventInvitees(params.arguments || {});
+                  break;
+                case 'calendly_get_invitee':
+                  toolResult = await this.inviteeTools.getInvitee(params.arguments || {});
+                  break;
+                case 'calendly_list_webhooks':
+                  toolResult = await this.webhookTools.listWebhooks(params.arguments || {});
+                  break;
+                case 'calendly_create_webhook':
+                  toolResult = await this.webhookTools.createWebhook(params.arguments || {});
+                  break;
+                case 'calendly_get_webhook':
+                  toolResult = await this.webhookTools.getWebhook(params.arguments || {});
+                  break;
+                case 'calendly_delete_webhook':
+                  toolResult = await this.webhookTools.deleteWebhook(params.arguments || {});
+                  break;
+                default:
+                  const errorResponse = {
+                    jsonrpc: '2.0',
+                    error: { code: -32601, message: `Tool ${params.name} not found` },
+                    id
+                  };
+                  res.write(JSON.stringify(errorResponse) + '\n');
+                  res.end();
+                  return;
+              }
+              
+              result = {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify(toolResult, null, 2)
+                }]
+              };
+              break;
+
+            default:
+              const errorResponse = {
+                jsonrpc: '2.0',
+                error: { code: -32601, message: `Method not found: ${method}` },
+                id
+              };
+              res.write(JSON.stringify(errorResponse) + '\n');
+              res.end();
+              return;
+          }
+
+          // Send successful response with streaming
+          const response = {
+            jsonrpc: '2.0',
+            result,
+            id
+          };
+
+          res.write(JSON.stringify(response) + '\n');
+          res.end();
+
+        } else if (req.method === 'GET') {
+          // Handle GET request for streaming info
+          const info = {
+            transport: 'HTTP Streamable',
+            protocol: 'MCP 1.0',
+            server: 'Calendly MCP Server',
+            version: this.config.version,
+            capabilities: { tools: { count: 14 } }
+          };
+          res.write(JSON.stringify(info) + '\n');
+          res.end();
+        } else {
+          res.status(400).json({ error: 'Invalid request method or missing body' });
+        }
+
+      } catch (error) {
+        this.logger.error('HTTP Streamable request failed:', error);
+        const errorResponse = {
+          jsonrpc: '2.0',
+          error: { 
+            code: -32603, 
+            message: error instanceof Error ? error.message : 'Internal error' 
+          },
+          id: req.body?.id || null
+        };
+        res.write(JSON.stringify(errorResponse) + '\n');
+        res.end();
+      }
+    });
+
+    // N8N compatible endpoints (legacy support)
     this.expressApp.get('/n8n/tools', async (req, res) => {
       try {
         // Return the same tools as MCP but in N8N format
@@ -611,6 +802,7 @@ class CalendlyMCPServer {
             version: this.config.version,
             endpoints: {
               mcp: `http://${this.config.http.host}:${this.config.http.port}/mcp`,
+              stream: `http://${this.config.http.host}:${this.config.http.port}/stream`,
               n8n_tools: `http://${this.config.http.host}:${this.config.http.port}/n8n/tools`,
               n8n_execute: `http://${this.config.http.host}:${this.config.http.port}/n8n/execute`
             }
