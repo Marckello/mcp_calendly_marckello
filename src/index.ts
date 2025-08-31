@@ -323,7 +323,37 @@ class CalendlyMCPServer {
 
     // MCP protocol handled directly in the endpoint below
 
-    // MCP HTTP endpoint
+    // MCP connection verification endpoint for N8N (GET)
+    this.expressApp.get('/mcp', async (req, res) => {
+      try {
+        // Return MCP server info for N8N connection verification
+        res.json({
+          server: {
+            name: this.config.name,
+            version: this.config.version,
+            protocol: 'MCP 1.0',
+            transport: 'HTTP/JSON-RPC 2.0'
+          },
+          capabilities: {
+            tools: {
+              count: 14
+            }
+          },
+          status: 'ready',
+          endpoints: {
+            mcp: '/mcp'
+          }
+        });
+      } catch (error) {
+        this.logger.error('MCP GET verification failed:', error);
+        res.status(500).json({
+          error: 'MCP server verification failed',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
+    // MCP HTTP endpoint for actual protocol communication (POST)
     this.expressApp.post('/mcp', async (req, res) => {
       const startTime = Date.now();
       try {
