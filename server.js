@@ -125,7 +125,7 @@ app.post('/mcp', async (req, res) => {
                         },
                         { 
                             name: 'calendly_list_event_types', 
-                            description: 'List user event types',
+                            description: 'List user event types with their scheduling URLs. Note: To schedule a meeting, users must visit the scheduling_url in their browser.',
                             inputSchema: {
                                 type: 'object',
                                 properties: {
@@ -133,6 +133,31 @@ app.post('/mcp', async (req, res) => {
                                     count: { type: 'number', description: 'Number of results to return' }
                                 },
                                 required: []
+                            }
+                        },
+                        { 
+                            name: 'calendly_get_scheduling_links', 
+                            description: 'Get scheduling links for booking meetings. Returns URLs that users can visit to schedule appointments.',
+                            inputSchema: {
+                                type: 'object',
+                                properties: {
+                                    active_only: { type: 'boolean', description: 'Return only active event types', default: true }
+                                },
+                                required: []
+                            }
+                        },
+                        { 
+                            name: 'calendly_create_booking_url', 
+                            description: 'Create a pre-filled booking URL for a specific event type with invitee information',
+                            inputSchema: {
+                                type: 'object',
+                                properties: {
+                                    event_type_name: { type: 'string', description: 'Name of the event type (e.g., "30 Minute Meeting")' },
+                                    invitee_name: { type: 'string', description: 'Name of the person booking the meeting' },
+                                    invitee_email: { type: 'string', description: 'Email of the person booking the meeting' },
+                                    timezone: { type: 'string', description: 'Timezone for the meeting (e.g., "America/New_York", "Europe/London")', default: 'America/New_York' }
+                                },
+                                required: ['event_type_name']
                             }
                         },
                         { 
@@ -286,6 +311,122 @@ app.post('/mcp', async (req, res) => {
                             break;
                         case 'calendly_list_event_types':
                             toolResult = await coreTools.listEventTypes(params.arguments || {});
+                            break;
+                        case 'calendly_get_scheduling_links':
+                            // Get event types with scheduling links formatted for users
+                            const eventTypesResult = await coreTools.listEventTypes(params.arguments || { active_only: true });
+                            if (eventTypesResult.success && eventTypesResult.data.event_types) {
+                                const schedulingLinks = eventTypesResult.data.event_types.map(et => ({
+                                    name: et.name,
+                                    duration: `${et.duration} minutes`,
+                                    scheduling_url: et.scheduling_url,
+                                    description: et.description_plain || 'No description',
+                                    active: et.active
+                                }));
+                                toolResult = {
+                                    success: true,
+                                    message: 'To schedule a meeting, please share these links with your invitees. They can click on the link and select an available time slot.',
+                                    scheduling_links: schedulingLinks,
+                                    instructions: [
+                                        '1. Choose the appropriate meeting type from the links below',
+                                        '2. Share the scheduling_url with the person who wants to book a meeting',
+                                        '3. They will open the link in their browser',
+                                        '4. They can select an available time slot',
+                                        '5. They will enter their name, email, and any other required information',
+                                        '6. The meeting will be automatically scheduled in both calendars'
+                                    ],
+                                    note: 'The Calendly API does not support direct booking. All scheduling must be done through the Calendly web interface using these links.'
+                                };
+                            } else {
+                                toolResult = {
+                                    success: false,
+                                    error: 'Failed to retrieve event types',
+                                    message: 'Could not fetch scheduling links. Please check your Calendly configuration.'
+                                };
+                            }
+                            break;
+                        case 'calendly_create_booking_url':
+                            // Create a pre-filled booking URL
+                            const args = params.arguments || {};
+                            const eventName = args.event_type_name;
+                            const inviteeName = args.invitee_name || '';
+                            const inviteeEmail = args.invitee_email || '';
+                            const timezone = args.timezone || 'America/New_York';
+                            
+                            if (!eventName) {
+                                toolResult = {
+                                    success: false,
+                                    error: 'Missing required parameter',
+                                    message: 'event_type_name is required to create a booking URL'
+                                };
+                                break;
+                            }
+                            
+                            // Get event types to find the matching one
+                            const allEventTypes = await coreTools.listEventTypes({ active_only: true });
+                            if (allEventTypes.success && allEventTypes.data.event_types) {
+                                // Find the matching event type (case insensitive)
+                                const matchingEvent = allEventTypes.data.event_types.find(et => 
+                                    et.name.toLowerCase().includes(eventName.toLowerCase()) ||
+                                    eventName.toLowerCase().includes(et.name.toLowerCase())
+                                );
+                                
+                                if (matchingEvent) {
+                                    // Build the booking URL with parameters
+                                    let bookingUrl = matchingEvent.scheduling_url;
+                                    const urlParams = new URLSearchParams();
+                                    
+                                    // Add pre-fill parameters if provided
+                                    if (inviteeName) urlParams.append('name', inviteeName);
+                                    if (inviteeEmail) urlParams.append('email', inviteeEmail);
+                                    if (timezone) urlParams.append('timezone', timezone);
+                                    
+                                    // Add parameters to URL if any
+                                    if (urlParams.toString()) {
+                                        bookingUrl += (bookingUrl.includes('?') ? '&' : '?') + urlParams.toString();
+                                    }
+                                    
+                                    toolResult = {
+                                        success: true,
+                                        message: 'Booking URL created successfully',
+                                        event_type: {
+                                            name: matchingEvent.name,
+                                            duration: `${matchingEvent.duration} minutes`,
+                                            description: matchingEvent.description_plain || 'No description'
+                                        },
+                                        booking_url: bookingUrl,
+                                        invitee_info: {
+                                            name: inviteeName || 'Not specified',
+                                            email: inviteeEmail || 'Not specified',
+                                            timezone: timezone
+                                        },
+                                        instructions: [
+                                            '1. Share this booking URL with the invitee or open it directly',
+                                            '2. The invitee information will be pre-filled if provided',
+                                            '3. Select an available time slot from the calendar',
+                                            '4. Confirm the booking details',
+                                            '5. The meeting will be automatically scheduled'
+                                        ],
+                                        note: 'This URL will open the Calendly booking page where the actual scheduling happens.'
+                                    };
+                                } else {
+                                    // List available event types if no match found
+                                    const availableTypes = allEventTypes.data.event_types.map(et => et.name).join(', ');
+                                    toolResult = {
+                                        success: false,
+                                        error: 'Event type not found',
+                                        message: `Could not find event type matching "${eventName}".`,
+                                        available_event_types: availableTypes,
+                                        suggestion: 'Please use one of the available event types listed above.'
+                                    };
+                                }
+                            } else {
+                                toolResult = {
+                                    success: false,
+                                    error: 'Failed to retrieve event types',
+                                    message: 'Could not fetch event types to create booking URL.'
+                                };
+                            }
                             break;
                         case 'calendly_get_event_type':
                             toolResult = await coreTools.getEventType(params.arguments || {});

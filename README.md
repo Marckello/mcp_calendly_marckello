@@ -5,11 +5,12 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 ## ✨ Features
 
 - 🔌 **Full n8n MCP Client Tool compatibility**
-- 📅 **14 Calendly tools** for complete calendar automation
+- 📅 **16 Calendly tools** for complete calendar automation
 - 🔐 **Secure authentication** with Calendly Personal Access Token
 - 🚀 **Production-ready** with PM2 process management
 - 📊 **Real-time data** from your Calendly account
 - 🎯 **HTTP Streamable** protocol support
+- 🔗 **Smart booking URLs** with pre-filled invitee information
 
 ## 🛠️ Available Tools
 
@@ -17,9 +18,11 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 - `calendly_get_current_user` - Get current user information
 - `calendly_get_organization` - Get organization details
 
-### Event Types
-- `calendly_list_event_types` - List user event types
+### Event Types & Scheduling
+- `calendly_list_event_types` - List user event types with scheduling URLs
 - `calendly_get_event_type` - Get event type details
+- `calendly_get_scheduling_links` - Get all available scheduling links for booking meetings
+- `calendly_create_booking_url` - Create a pre-filled booking URL with invitee information
 
 ### Scheduled Events
 - `calendly_list_scheduled_events` - List scheduled events
@@ -108,6 +111,31 @@ supervisord -c supervisord.conf
 supervisorctl status
 ```
 
+## 📅 How Scheduling Works
+
+**Important**: The Calendly API does not support direct meeting scheduling. All bookings must be made through Calendly's web interface using scheduling links.
+
+### Scheduling Process
+1. Use `calendly_get_scheduling_links` to get available meeting types
+2. Use `calendly_create_booking_url` to generate a pre-filled booking link
+3. Share the link with invitees or open it in a browser
+4. Select an available time slot on the Calendly page
+5. Complete the booking with required information
+6. The meeting is automatically scheduled in both calendars
+
+### Example: Creating a Booking URL
+When you call `calendly_create_booking_url` with:
+- Event type: "30 Minute Meeting"
+- Invitee: "Antonio" (markserga@icloud.com)
+- Timezone: "America/New_York"
+
+The tool returns a URL like:
+```
+https://calendly.com/marco-serga/30min?name=Antonio&email=markserga@icloud.com&timezone=America/New_York
+```
+
+This URL opens the Calendly booking page with the invitee's information pre-filled.
+
 ## 🔗 n8n Integration
 
 ### Configuration in n8n
@@ -166,6 +194,26 @@ curl -X POST http://localhost:3000/mcp \
   }'
 ```
 
+### Create Booking URL for a Meeting
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "calendly_create_booking_url",
+      "arguments": {
+        "event_type_name": "30 Minute Meeting",
+        "invitee_name": "John Doe",
+        "invitee_email": "john@example.com",
+        "timezone": "America/New_York"
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 2
+  }'
+```
+
 ### List Scheduled Events
 ```bash
 curl -X POST http://localhost:3000/mcp \
@@ -180,7 +228,7 @@ curl -X POST http://localhost:3000/mcp \
       }
     },
     "jsonrpc": "2.0",
-    "id": 2
+    "id": 3
   }'
 ```
 
