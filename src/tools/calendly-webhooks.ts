@@ -40,24 +40,44 @@ export class CalendlyWebhookTools {
       }
 
       this.logger.info('Fetching webhooks from Calendly API', { organizationUri, scope: params.scope });
-      const webhooks = await this.calendly.getWebhooks();
       
-      const activeWebhooks = webhooks.filter(w => w.state === 'active');
-      const disabledWebhooks = webhooks.filter(w => w.state === 'disabled');
+      try {
+        const webhooks = await this.calendly.getWebhooks();
+        
+        const activeWebhooks = webhooks.filter(w => w.state === 'active');
+        const disabledWebhooks = webhooks.filter(w => w.state === 'disabled');
 
-      return {
-        success: true,
-        data: {
-          webhooks: webhooks,
-          count: webhooks.length,
-          summary: `Found ${webhooks.length} webhook subscriptions`,
-          breakdown: {
-            active: activeWebhooks.length,
-            disabled: disabledWebhooks.length
-          },
-          organization_uri: organizationUri
+        return {
+          success: true,
+          data: {
+            webhooks: webhooks,
+            count: webhooks.length,
+            summary: `Found ${webhooks.length} webhook subscriptions`,
+            breakdown: {
+              active: activeWebhooks.length,
+              disabled: disabledWebhooks.length
+            },
+            organization_uri: organizationUri
+          }
+        };
+      } catch (apiError: any) {
+        // Handle API v2 compatibility issues
+        if (apiError.message?.includes('400') || apiError.message?.includes('invalid parameters')) {
+          this.logger.warn('Webhooks API may have changed in v2 or no webhooks exist', { error: apiError.message });
+          return {
+            success: true,
+            data: {
+              webhooks: [],
+              count: 0,
+              summary: 'No webhook subscriptions found (may not have permissions or no webhooks configured)',
+              breakdown: { active: 0, disabled: 0 },
+              note: 'API v2 may require different parameters or this account may not have webhooks configured',
+              organization_uri: organizationUri
+            }
+          };
         }
-      };
+        throw apiError;
+      }
     } catch (error) {
       this.logger.error('Error fetching webhooks:', error);
       

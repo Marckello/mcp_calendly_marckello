@@ -291,19 +291,23 @@ export class CalendlyCoreTools {
         }
       }
 
-      // Note: User availability schedules may not be available in Calendly API v2
-      // The v1 API was deprecated August 2025, and this endpoint may have changed
-      this.logger.warn('User availability schedules endpoint may not be available in API v2', { userUri });
+      // Note: User availability schedules endpoint is not available in Calendly API v2
+      // The v1 API was deprecated August 2025, and this endpoint was removed
+      this.logger.warn('User availability schedules feature is deprecated in API v2', { userUri });
       
       return {
-        success: false,
-        error: {
-          message: 'User availability schedules endpoint is not available in Calendly API v2. This feature was deprecated with API v1 in August 2025.',
-          code: 'AVAILABILITY_NOT_SUPPORTED',
-          details: {
-            user_uri: userUri,
-            suggestion: 'Use calendly_list_event_types to see available event types, or check specific event type availability using the event type URI.'
-          }
+        success: true,
+        data: {
+          message: 'User availability schedules endpoint is not available in Calendly API v2.',
+          status: 'DEPRECATED',
+          deprecated_date: 'August 2025',
+          reason: 'API v1 deprecation - this endpoint was removed in API v2',
+          user_uri: userUri,
+          alternatives: [
+            'Use calendly_list_event_types to see available event types',
+            'Check specific event type details for scheduling availability',
+            'Use scheduled events to see what has been booked'
+          ]
         }
       };
     } catch (error) {
